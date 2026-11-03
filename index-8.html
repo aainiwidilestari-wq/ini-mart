@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Aini Mart - Aplikasi Kasir</title>
+<style>
+:root{--primary:#2563eb;--dark:#1e293b;--bg:#f1f5f9;--card:#fff;--muted:#64748b;--danger:#dc2626;--green:#15803d}
+*{box-sizing:border-box}body{margin:0;font-family:Arial, sans-serif;background:var(--bg);color:var(--dark)}
+header{background:linear-gradient(135deg,#1d4ed8,#60a5fa);color:#fff;padding:18px 16px}
+header .wrap{max-width:1100px;margin:auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:24px;margin:0}header p{margin:5px 0 0;font-size:13px}
+main{max-width:1100px;margin:18px auto;padding:0 14px;display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
+.panel{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 3px 14px #0f172a12}
+.panel h2{font-size:18px;margin:0 0 12px}
+.controls{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+input,select,button{font:inherit;border-radius:9px;padding:11px;border:1px solid #cbd5e1}
+input,select{background:white;min-width:0}#search{flex:1}
+button{border:0;background:var(--primary);color:white;cursor:pointer;font-weight:600;min-height:44px}
+button.secondary{background:#e2e8f0;color:#1e293b}button.danger{background:var(--danger)}button:disabled{opacity:.5;cursor:not-allowed}
+.products{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.product{border:1px solid #e2e8f0;border-radius:11px;padding:12px;display:flex;flex-direction:column;gap:7px}
+.product .emoji{font-size:26px}.product h3{font-size:14px;margin:0}.product small{color:var(--muted)}
+.product .price{font-weight:bold;color:#1d4ed8;margin-top:auto}.product button{width:100%;padding:9px}
+.cart-row{display:flex;justify-content:space-between;gap:8px;padding:10px 0;border-bottom:1px solid #e2e8f0;align-items:center}
+.cart-row .name{font-weight:600;font-size:14px}.cart-row small{color:var(--muted)}
+.qty{display:flex;align-items:center;gap:5px}.qty button{min-height:30px;padding:4px 9px}
+.summary{display:grid;gap:8px;margin-top:14px}.line{display:flex;justify-content:space-between;gap:8px}
+.total{font-size:19px;font-weight:bold;border-top:1px solid #cbd5e1;padding-top:10px}
+.payment{display:grid;gap:8px;margin-top:12px}.payment input{width:100%}
+.message{font-size:13px;min-height:18px;color:var(--danger)}
+.receipt{background:#f8fafc;border:1px dashed #94a3b8;padding:12px;margin-top:12px;border-radius:9px;font-size:13px;white-space:pre-wrap}
+.history{margin-top:14px}.history-item{padding:9px 0;border-bottom:1px solid #e2e8f0;font-size:13px}
+footer{text-align:center;color:var(--muted);padding:20px;font-size:12px}
+.modal{display:none;position:fixed;inset:0;background:#0f172a99;align-items:center;justify-content:center;padding:16px;z-index:3}
+.modal.show{display:flex}.modal-box{background:white;border-radius:14px;padding:18px;width:min(420px,100%);display:grid;gap:10px}
+@media(max-width:760px){main{grid-template-columns:1fr}.products{grid-template-columns:repeat(2,minmax(0,1fr))}header .wrap{align-items:flex-start;flex-direction:column}h1{font-size:22px}}
+</style>
+</head>
+<body>
+<header><div class="wrap"><div><h1>🛒 Aini Mart</h1><p>Aplikasi Mesin Kasir Toko Berbasis Web</p></div><div><strong>Kasir: Aini</strong><br><small>XI RPL</small></div></div></header>
+<main>
+<section class="panel">
+<h2>Daftar Produk</h2>
+<div class="controls"><input id="search" placeholder="Cari nama produk..." aria-label="Cari produk"><select id="category"><option value="Semua">Semua kategori</option><option>Makanan</option><option>Minuman</option><option>Alat Tulis</option><option>Kebutuhan</option></select><button onclick="openProductModal()">+ Produk</button></div>
+<div class="products" id="products"></div>
+</section>
+<section class="panel">
+<h2>Keranjang Belanja</h2><div id="cart"><p class="message">Keranjang masih kosong.</p></div>
+<div class="summary"><div class="line"><span>Subtotal</span><strong id="subtotal">Rp 0</strong></div><div class="line"><span>Diskon</span><strong id="discount">Rp 0</strong></div><div class="line total"><span>Total</span><span id="total">Rp 0</span></div></div>
+<div class="payment"><label for="paid">Uang bayar (Rp)</label><input id="paid" type="number" min="0" placeholder="Masukkan uang bayar"><div class="line"><span>Kembalian</span><strong id="change">Rp 0</strong></div><div id="message" class="message"></div><button id="checkout" onclick="checkout()">Selesaikan Transaksi</button><button class="secondary" onclick="clearCart()">Kosongkan Keranjang</button></div>
+<div id="receipt"></div>
+<div class="history"><h2>Riwayat Transaksi</h2><div id="history"></div></div>
+</section>
+</main>
+<footer>Aini Mart • Dibuat oleh Aini • Proyek Individu XI RPL</footer>
+<div class="modal" id="productModal"><form class="modal-box" id="productForm"><h2 id="modalTitle">Tambah Produk</h2><input id="productName" placeholder="Nama produk" required><input id="productPrice" type="number" min="1" placeholder="Harga (Rp)" required><select id="productCategory"><option>Makanan</option><option>Minuman</option><option>Alat Tulis</option><option>Kebutuhan</option></select><div class="controls"><button type="submit">Simpan</button><button type="button" class="secondary" onclick="closeProductModal()">Batal</button></div></form></div>
+<script>
+// Data produk awal; produk dan transaksi disimpan di localStorage.
+const initialProducts=[
+{id:1,name:"Roti Cokelat",price:5000,category:"Makanan",emoji:"🍞"},
+{id:2,name:"Biskuit",price:7000,category:"Makanan",emoji:"🍪"},
+{id:3,name:"Mi Instan",price:3500,category:"Makanan",emoji:"🍜"},
+{id:4,name:"Keripik",price:8000,category:"Makanan",emoji:"🍟"},
+{id:5,name:"Air Mineral",price:3000,category:"Minuman",emoji:"💧"},
+{id:6,name:"Teh Botol",price:5000,category:"Minuman",emoji:"🧋"},
+{id:7,name:"Susu Kotak",price:6000,category:"Minuman",emoji:"🥛"},
+{id:8,name:"Kopi Sachet",price:2500,category:"Minuman",emoji:"☕"},
+{id:9,name:"Buku Tulis",price:5000,category:"Alat Tulis",emoji:"📒"},
+{id:10,name:"Pulpen",price:3000,category:"Alat Tulis",emoji:"🖊️"},
+{id:11,name:"Pensil",price:2000,category:"Alat Tulis",emoji:"✏️"},
+{id:12,name:"Penghapus",price:1500,category:"Alat Tulis",emoji:"🧽"}
+];
+const rupiah=n=>new Intl.NumberFormat("id-ID",{style:"currency",currency:"IDR",maximumFractionDigits:0}).format(n);
+let products=JSON.parse(localStorage.getItem("ainiProducts")||"null")||initialProducts;
+let cart={},transactions=JSON.parse(localStorage.getItem("ainiTransactions")||"[]"),editingId=null;
+function saveProducts(){localStorage.setItem("ainiProducts",JSON.stringify(products))}
+function saveTransactions(){localStorage.setItem("ainiTransactions",JSON.stringify(transactions))}
+function renderProducts(){
+ const q=document.getElementById("search").value.toLowerCase(),cat=document.getElementById("category").value;
+ const list=products.filter(p=>p.name.toLowerCase().includes(q)&&(cat==="Semua"||p.category===cat));
+ document.getElementById("products").innerHTML=list.map(p=>`<article class="product"><span class="emoji">${p.emoji||"🛍️"}</span><h3>${escapeHtml(p.name)}</h3><small>${p.category}</small><div class="price">${rupiah(p.price)}</div><button onclick="addToCart(${p.id})">Tambah</button><button class="secondary" onclick="editProduct(${p.id})">Edit</button><button class="danger" onclick="deleteProduct(${p.id})">Hapus</button></article>`).join("")||"<p>Produk tidak ditemukan.</p>";
+}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function addToCart(id){cart[id]=(cart[id]||0)+1;renderCart()}
+function changeQty(id,d){cart[id]=(cart[id]||0)+d;if(cart[id]<=0)delete cart[id];renderCart()}
+function clearCart(){if(!Object.keys(cart).length)return;if(confirm("Kosongkan keranjang belanja?")){cart={};renderCart();document.getElementById("receipt").innerHTML=""}}
+function getSubtotal(){return Object.entries(cart).reduce((sum,[id,qty])=>{const p=products.find(x=>x.id===Number(id));return sum+(p?p.price*qty:0)},0)}
+function renderCart(){
+ const entries=Object.entries(cart).filter(([id,qty])=>products.some(p=>p.id===Number(id))&&qty>0);
+ document.getElementById("cart").innerHTML=entries.length?entries.map(([id,qty])=>{const p=products.find(x=>x.id===Number(id));return `<div class="cart-row"><div><div class="name">${escapeHtml(p.name)}</div><small>${rupiah(p.price)} × ${qty}</small></div><div class="qty"><button class="secondary" onclick="changeQty(${id},-1)">−</button><b>${qty}</b><button onclick="changeQty(${id},1)">+</button></div></div>`}).join(""):'<p class="message">Keranjang masih kosong.</p>';
+ const sub=getSubtotal(),discount=0,total=sub-discount,paid=Number(document.getElementById("paid").value||0);
+ document.getElementById("subtotal").textContent=rupiah(sub);document.getElementById("discount").textContent=rupiah(discount);document.getElementById("total").textContent=rupiah(total);document.getElementById("change").textContent=rupiah(Math.max(0,paid-total));
+ document.getElementById("checkout").disabled=!entries.length||paid<total;
+ document.getElementById("message").textContent=entries.length&&paid<total?"Uang bayar masih kurang.":""; 
+}
+function checkout(){
+ const sub=getSubtotal(),paid=Number(document.getElementById("paid").value||0);
+ if(!Object.keys(cart).length)return alert("Keranjang masih kosong.");
+ if(paid<sub)return alert("Uang bayar masih kurang.");
+ if(!confirm("Selesaikan transaksi ini?"))return;
+ const now=new Date(),items=Object.entries(cart).map(([id,qty])=>{const p=products.find(x=>x.id===Number(id));return {name:p.name,price:p.price,qty,total:p.price*qty}});
+ const tx={id:Date.now(),date:now.toLocaleDateString("id-ID"),time:now.toLocaleTimeString("id-ID"),items,total:sub,paid,change:paid-sub};
+ transactions.unshift(tx);saveTransactions();cart={};document.getElementById("paid").value="";renderCart();renderHistory();showReceipt(tx);
+}
+function showReceipt(tx){
+ document.getElementById("receipt").innerHTML=`<div class="receipt"><strong>AINI MART</strong>\nKasir: Aini\n${tx.date} ${tx.time}\n----------------------\n${tx.items.map(i=>`${i.name} x${i.qty}  ${rupiah(i.total)}`).join("\n")}\n----------------------\nTotal: ${rupiah(tx.total)}\nBayar: ${rupiah(tx.paid)}\nKembali: ${rupiah(tx.change)}\nTerima kasih telah berbelanja!<br><button onclick="window.print()">Cetak Struk</button></div>`;
+}
+function renderHistory(){document.getElementById("history").innerHTML=transactions.length?transactions.slice(0,10).map(t=>`<div class="history-item"><b>${t.date} ${t.time}</b><br>${t.items.length} item • ${rupiah(t.total)}</div>`).join(""):"<small>Belum ada transaksi.</small>"}
+function openProductModal(){editingId=null;document.getElementById("productForm").reset();document.getElementById("modalTitle").textContent="Tambah Produk";document.getElementById("productModal").classList.add("show")}
+function closeProductModal(){document.getElementById("productModal").classList.remove("show")}
+function editProduct(id){const p=products.find(x=>x.id===id);if(!p)return;editingId=id;document.getElementById("productName").value=p.name;document.getElementById("productPrice").value=p.price;document.getElementById("productCategory").value=p.category;document.getElementById("modalTitle").textContent="Ubah Produk";document.getElementById("productModal").classList.add("show")}
+function deleteProduct(id){if(!confirm("Hapus produk ini?"))return;products=products.filter(p=>p.id!==id);delete cart[id];saveProducts();renderProducts();renderCart()}
+document.getElementById("productForm").addEventListener("submit",e=>{e.preventDefault();const name=document.getElementById("productName").value.trim(),price=Number(document.getElementById("productPrice").value),category=document.getElementById("productCategory").value;if(!name||price<=0)return alert("Masukkan nama dan harga produk yang benar.");if(editingId){const p=products.find(x=>x.id===editingId);Object.assign(p,{name,price,category})}else products.push({id:Date.now(),name,price,category,emoji:"🛍️"});saveProducts();renderProducts();renderCart();closeProductModal()});
+document.getElementById("search").addEventListener("input",renderProducts);document.getElementById("category").addEventListener("change",renderProducts);document.getElementById("paid").addEventListener("input",renderCart);
+renderProducts();renderCart();renderHistory();
+</script>
+</body>
+</html>
